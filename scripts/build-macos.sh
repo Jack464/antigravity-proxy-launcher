@@ -23,7 +23,8 @@ done
 arm_bin="$(swift build --package-path "$project_root/macos" --scratch-path "$build_root/arm64" --configuration release --arch arm64 --show-bin-path)"
 intel_bin="$(swift build --package-path "$project_root/macos" --scratch-path "$build_root/x86_64" --configuration release --arch x86_64 --show-bin-path)"
 xcrun lipo -create "$arm_bin/AntigravityProxyLauncher" "$intel_bin/AntigravityProxyLauncher" -output "$app/Contents/MacOS/AntigravityProxyLauncher"
-xcrun lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/AntigravityProxyLauncher"
+xcrun lipo "$app/Contents/MacOS/AntigravityProxyLauncher" -verify_arch arm64 x86_64
+xcrun lipo "$app/Contents/MacOS/AntigravityProxyLauncher" -archs
 chmod 755 "$app/Contents/MacOS/AntigravityProxyLauncher"
 
 cat > "$app/Contents/Info.plist" <<EOF
@@ -57,5 +58,8 @@ codesign --verify --deep --strict --verbose=2 "$app"
 
 zip_name="AntigravityProxyLauncher-v$version-macos-universal.zip"
 ditto -c -k --sequesterRsrc --keepParent "$app" "$dist_root/$zip_name"
+mkdir -p "$build_root/archive-check"
+ditto -x -k "$dist_root/$zip_name" "$build_root/archive-check"
+codesign --verify --deep --strict "$build_root/archive-check/Antigravity Proxy Launcher.app"
 (cd "$dist_root" && shasum -a 256 "$zip_name") > "$dist_root/SHA256SUMS-macos.txt"
 printf 'Built %s\n' "$dist_root/$zip_name"
