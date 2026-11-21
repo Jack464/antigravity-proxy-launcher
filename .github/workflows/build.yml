@@ -1,0 +1,78 @@
+name: Windows build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build, test, and package
+        shell: powershell
+        env:
+          BUILD_REF_TYPE: ${{ github.ref_type }}
+          BUILD_REF_NAME: ${{ github.ref_name }}
+        run: |
+          $version = '1.0.0'
+          if ($env:BUILD_REF_TYPE -eq 'tag') {
+            $version = $env:BUILD_REF_NAME -replace '^v', ''
+          }
+          & .\scripts\build.ps1 -Version $version -Test -Package
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Windows package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-release
+          path: |
+            dist/AntigravityProxyLauncher.exe
+            dist/*-windows.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested Windows package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: windows-release
+          path: dist
+      - name: Publish GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $assets = @(Get-ChildItem -LiteralPath dist -File | Where-Object {
+            $_.Name -eq 'AntigravityProxyLauncher.exe' -or
+            $_.Name -like '*-windows.zip' -or
+            $_.Name -eq 'SHA256SUMS.txt'
+          } | Select-Object -ExpandProperty FullName)
+          if ($assets.Count -ne 3) { throw 'Expected exactly three release assets.' }
+          $previousPreference = $ErrorActionPreference
+          $ErrorActionPreference = 'Continue'
+          gh release view $env:RELEASE_TAG --json tagName 2>$null
+          $releaseExists = $LASTEXITCODE -eq 0
+          $ErrorActionPreference = $previousPreference
+          if ($releaseExists) {
+            gh release upload $env:RELEASE_TAG @assets --clobber
+          } else {
+            gh release create $env:RELEASE_TAG @assets --verify-tag --generate-notes --title $env:RELEASE_TAG
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

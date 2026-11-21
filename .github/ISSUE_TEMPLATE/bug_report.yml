@@ -1,0 +1,40 @@
+name: Bug report / 问题反馈
+description: Report a reproducible launcher issue / 反馈可复现的启动器问题
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请勿提交 Google 令牌、代理密码或订阅地址。诊断信息可能包含本地路径和代理地址，请先遮蔽私人信息。
+        Do not include Google tokens, proxy credentials, or subscription URLs. Review local paths and proxy addresses before posting.
+  - type: input
+    id: launcher-version
+    attributes:
+      label: Launcher version / 启动器版本
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version / Windows 版本
+      placeholder: "Windows 11 x64"
+    validations:
+      required: true
+  - type: input
+    id: antigravity-version
+    attributes:
+      label: Antigravity version / Antigravity 版本
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and result / 复现步骤与结果
+      description: What did you do, what happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics / 已遮蔽私人信息的诊断
+      description: Optional. Run --diagnose or use Settings. Remove private information first.
+      render: text

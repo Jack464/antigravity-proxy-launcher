@@ -1,0 +1,8 @@
+/build/
+/dist/
+/.vs/
+*.user
+*.suo
+*.log
+diagnostics.txt
+config.ini
