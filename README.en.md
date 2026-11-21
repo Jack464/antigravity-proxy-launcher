@@ -27,7 +27,7 @@ The Mac application is native Swift / AppKit. Users do not need .NET, a Swift SD
 1. Download and extract `AntigravityProxyLauncher-v1.1.0-macos-universal.zip`.
 2. Move `Antigravity Proxy Launcher.app` to Applications or another permanent location. Keep it outside the `Antigravity.app` bundle; optionally add the launcher to the Dock.
 3. Open it once to configure the proxy. Leave the application path blank to discover `/Applications/Antigravity.app`, `~/Applications/Antigravity.app`, or the system-registered installation. Select the `.app` manually for a custom installation.
-4. Save and launch. Use the launcher's Settings menu when you need to change the configuration.
+4. Save and launch. To change settings later, hold **Option** while opening the launcher. The Settings menu is also available while the settings window is open.
 
 **The macOS version is a preview: validation is based on CI builds and automated tests, without physical-Mac verification of first launch from Finder, Gatekeeper, or Google OAuth sign-in.** The bundle has an ad-hoc signature, not an Apple Developer ID signature or notarization, so Gatekeeper may prevent opening a downloaded copy. Confirm the source and checksum, and consult [Apple's guidance on safely opening Mac apps](https://support.apple.com/102445). This project does not require disabling system protection.
 

@@ -27,7 +27,7 @@ macOS 版为 Swift / AppKit 原生应用，用户不需要安装 .NET、Swift SD
 1. 下载 `AntigravityProxyLauncher-v1.1.0-macos-universal.zip` 并解压。
 2. 将 `Antigravity Proxy Launcher.app` 放入“应用程序”或其他长期保留的位置。请放在 `Antigravity.app` 包之外；可将启动器拖入 Dock 方便以后使用。
 3. 首次打开后填写代理地址。应用位置可留空，启动器会查找 `/Applications/Antigravity.app`、`~/Applications/Antigravity.app` 以及系统登记的安装位置；自定义安装可手动选择 `.app`。
-4. 选择保存并启动。需要更改设置时，可使用启动器菜单中的“设置”。
+4. 选择保存并启动。以后需要更改设置时，按住 **Option** 再打开启动器；设置窗口打开时也可使用菜单中的“设置”。
 
 **macOS 版当前为预览版：以 CI 构建和自动测试为验证依据，尚未在实际 Mac 上验证 Finder 首次打开、Gatekeeper 行为或 Google OAuth 登录。** 发布包仅采用 ad-hoc 签名，没有 Apple Developer ID 签名或公证，因此下载后可能被 Gatekeeper 拦截。请先确认下载来源与校验值，并参阅 [Apple 官方的安全打开应用说明](https://support.apple.com/102445)；本项目不要求关闭系统安全防护。
 
