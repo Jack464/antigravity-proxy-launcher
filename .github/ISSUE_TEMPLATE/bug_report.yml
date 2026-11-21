@@ -11,14 +11,14 @@ body:
     id: launcher-version
     attributes:
       label: Launcher version / 启动器版本
-      placeholder: "1.0.0"
+      placeholder: "1.1.0"
     validations:
       required: true
   - type: input
-    id: windows-version
+    id: os-version
     attributes:
-      label: Windows version / Windows 版本
-      placeholder: "Windows 11 x64"
+      label: OS version and architecture / 系统版本与架构
+      placeholder: "Windows 11 x64 / macOS 15 Apple Silicon / macOS 13 Intel"
     validations:
       required: true
   - type: input

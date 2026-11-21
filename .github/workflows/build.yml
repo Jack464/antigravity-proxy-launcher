@@ -1,4 +1,4 @@
-name: Windows build and release
+name: Build and release
 
 on:
   push:
@@ -11,68 +11,95 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Build, test, and package
+      - name: Build, test, and package Windows
         shell: powershell
         env:
           BUILD_REF_TYPE: ${{ github.ref_type }}
           BUILD_REF_NAME: ${{ github.ref_name }}
         run: |
-          $version = '1.0.0'
-          if ($env:BUILD_REF_TYPE -eq 'tag') {
-            $version = $env:BUILD_REF_NAME -replace '^v', ''
-          }
+          $version = '1.1.0'
+          if ($env:BUILD_REF_TYPE -eq 'tag') { $version = $env:BUILD_REF_NAME -replace '^v', '' }
           & .\scripts\build.ps1 -Version $version -Test -Package
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload Windows package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-release
           path: |
             dist/AntigravityProxyLauncher.exe
             dist/*-windows.zip
-            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+  macos-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run native macOS tests
+        run: swift test --package-path macos
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and verify universal macOS app
+        env:
+          BUILD_REF_TYPE: ${{ github.ref_type }}
+          BUILD_REF_NAME: ${{ github.ref_name }}
+        run: |
+          version=1.1.0
+          if [[ "$BUILD_REF_TYPE" == tag ]]; then version="${BUILD_REF_NAME#v}"; fi
+          bash scripts/build-macos.sh "$version"
+      - name: Upload macOS package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-release
+          path: dist/*-macos-universal.zip
           if-no-files-found: error
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: windows-latest
+    needs: [windows, macos-tests, macos]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download tested Windows package
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - name: Download tested packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: windows-release
+          pattern: '*-release'
+          merge-multiple: true
           path: dist
-      - name: Publish GitHub Release
-        shell: powershell
+      - name: Create combined checksums and publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          $assets = @(Get-ChildItem -LiteralPath dist -File | Where-Object {
-            $_.Name -eq 'AntigravityProxyLauncher.exe' -or
-            $_.Name -like '*-windows.zip' -or
-            $_.Name -eq 'SHA256SUMS.txt'
-          } | Select-Object -ExpandProperty FullName)
-          if ($assets.Count -ne 3) { throw 'Expected exactly three release assets.' }
-          $previousPreference = $ErrorActionPreference
-          $ErrorActionPreference = 'Continue'
-          gh release view $env:RELEASE_TAG --json tagName 2>$null
-          $releaseExists = $LASTEXITCODE -eq 0
-          $ErrorActionPreference = $previousPreference
-          if ($releaseExists) {
-            gh release upload $env:RELEASE_TAG @assets --clobber
-          } else {
-            gh release create $env:RELEASE_TAG @assets --verify-tag --generate-notes --title $env:RELEASE_TAG
-          }
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cd dist
+          assets=(AntigravityProxyLauncher.exe *-windows.zip *-macos-universal.zip)
+          [[ ${#assets[@]} -eq 3 ]]
+          sha256sum "${assets[@]}" > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+          assets+=(SHA256SUMS.txt)
+          if gh release view "$RELEASE_TAG" --json tagName >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --generate-notes --title "$RELEASE_TAG — Windows + macOS preview"
+          fi

@@ -6,3 +6,6 @@
 *.log
 diagnostics.txt
 config.ini
+/macos/.build/
+/macos/.swiftpm/
+.DS_Store
